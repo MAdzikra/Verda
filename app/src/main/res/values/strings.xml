@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">VerdaApp</string>
+    <string name="menu_home">Home</string>
+    <string name="menu_module">Course</string>
+    <string name="menu_article">Article</string>
+    <string name="menu_quiz">Quiz</string>
+    <string name="menu_chatbot">Chatbot</string>
+</resources>
