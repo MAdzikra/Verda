@@ -1,5 +1,6 @@
 package com.example.verdaapp.ui.view.register
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -25,9 +26,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -43,6 +48,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.verdaapp.R
@@ -52,11 +58,30 @@ import com.example.verdaapp.ui.theme.poppinsFontFamily
 
 @Composable
 fun RegisterScreen(navController: NavController) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    val viewModel: RegisterViewModel = viewModel()
+    val registerState by viewModel.registerState.collectAsState()
+
+    LaunchedEffect(registerState) {
+        registerState?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            if (it.equals("Registrasi Berhasil", ignoreCase = true)) {
+//                Toast.makeText(context, "Register success!", Toast.LENGTH_SHORT).show()
+                println("Navigating to login...")
+                navController.navigate(Screen.Login.route)
+            } else {
+                Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            }
+            kotlinx.coroutines.delay(300)
+            viewModel.resetRegisterState()
+        }
+    }
 
     BackHandler {
         navController.popBackStack()
@@ -196,7 +221,18 @@ fun RegisterScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(20.dp))
 
         Button(
-            onClick = { /* TODO: Tambahkan aksi login */ },
+            onClick = {
+                if (password != confirmPassword) {
+                    Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
+                    println("DEBUG: Passwords do not match")
+                } else if (email.isEmpty() || name.isEmpty() || password.isEmpty()) {
+                    Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
+                    println("DEBUG: Fields missing")
+                } else {
+                    println("DEBUG: Call viewModel.register()")
+                    viewModel.register(name, email, password, "Guru")
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp)

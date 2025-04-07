@@ -1,6 +1,7 @@
 package com.example.verdaapp.ui.view.login
 
 import android.app.Activity
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -28,6 +29,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +50,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.verdaapp.R
@@ -61,7 +65,22 @@ fun LoginScreen(navController: NavController) {
     var rememberMe by remember { mutableStateOf(false) }
     var passwordVisible by remember { mutableStateOf(false) }
 
-    val activity = (LocalContext.current as? Activity)
+    val context = LocalContext.current
+    val activity = (context as? Activity)
+    val loginViewModel: LoginViewModel = viewModel()
+    val loginState by loginViewModel.loginState.collectAsState()
+
+    LaunchedEffect(loginState) {
+        loginState?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            if (message.contains("sukses", true) || message.contains("berhasil", true)) {
+                navController.navigate(Screen.Home.route) {
+                    popUpTo(Screen.Login.route) { inclusive = true }
+                }
+            }
+            loginViewModel.resetLoginState()
+        }
+    }
 
     BackHandler {
         activity?.finish()
@@ -174,7 +193,13 @@ fun LoginScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(20.dp))
 
         Button(
-            onClick = { navController.navigate(Screen.Home.route) },
+            onClick = {
+                if (email.isBlank() || password.isBlank()) {
+                    Toast.makeText(context, "Email dan password tidak boleh kosong", Toast.LENGTH_SHORT).show()
+                } else {
+                    loginViewModel.login(email.trim(), password)
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp)
