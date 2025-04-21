@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -31,7 +32,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,21 +59,24 @@ import com.example.verdaapp.ui.theme.poppinsFontFamily
 @Composable
 fun RegisterScreen(navController: NavController) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
     val viewModel: RegisterViewModel = viewModel()
     val registerState by viewModel.registerState.collectAsState()
+    var emailError by remember { mutableStateOf<String?>(null) }
+    var passwordError by remember { mutableStateOf<String?>(null) }
+    var confirmPasswordError by remember { mutableStateOf<String?>(null) }
+    var nameError by remember { mutableStateOf<String?>(null) }
+    val isLoading by viewModel.isLoading.collectAsState()
 
     LaunchedEffect(registerState) {
         registerState?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-            if (it.equals("Registrasi Berhasil", ignoreCase = true)) {
-//                Toast.makeText(context, "Register success!", Toast.LENGTH_SHORT).show()
-                println("Navigating to login...")
+            if (it.contains("Registrasi Berhasil", ignoreCase = true)) {
                 navController.navigate(Screen.Login.route)
             } else {
                 Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
@@ -137,8 +140,12 @@ fun RegisterScreen(navController: NavController) {
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
+                .padding(vertical = 8.dp),
+            isError = nameError != null
         )
+        nameError?.let {
+            Text(text = it, color = Color.Red, fontSize = 12.sp, modifier = Modifier.fillMaxWidth().padding(start = 8.dp).align(Alignment.Start))
+        }
 
         Text(text = "Email", fontFamily = poppinsFontFamily, fontWeight = FontWeight.SemiBold, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(
@@ -156,8 +163,12 @@ fun RegisterScreen(navController: NavController) {
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
+                .padding(vertical = 8.dp),
+            isError = emailError != null
         )
+        emailError?.let {
+            Text(text = it, color = Color.Red, fontSize = 12.sp, modifier = Modifier.fillMaxWidth().padding(start = 8.dp).align(Alignment.Start))
+        }
 
         Text(text = "Password", fontFamily = poppinsFontFamily, fontWeight = FontWeight.SemiBold, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(
@@ -186,8 +197,12 @@ fun RegisterScreen(navController: NavController) {
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
+                .padding(vertical = 8.dp),
+            isError = passwordError != null
         )
+        passwordError?.let {
+            Text(text = it, color = Color.Red, fontSize = 12.sp, modifier = Modifier.fillMaxWidth().padding(start = 8.dp).align(Alignment.Start))
+        }
 
         Text(text = "Confirm Password", fontFamily = poppinsFontFamily, fontWeight = FontWeight.SemiBold, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(
@@ -195,41 +210,79 @@ fun RegisterScreen(navController: NavController) {
             onValueChange = { confirmPassword = it },
             shape = RoundedCornerShape(25.dp),
             textStyle = TextStyle(color = Color.Black),
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             placeholder = { Text("Enter your Password", fontFamily = poppinsFontFamily) },
             leadingIcon = {
                 Icon(
-                    painter = painterResource(id = R.drawable.ic_lock),
+                    painter = painterResource(id = R.drawable.ic_locked),
                     contentDescription = "Lock Icon",
                     modifier = Modifier.size(20.dp)
                 )
             },
             trailingIcon = {
-                val image = if (passwordVisible)
+                val image = if (confirmPasswordVisible)
                     painterResource(id = R.drawable.ic_visibility)
                 else
                     painterResource(id = R.drawable.ic_visibility_off)
 
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
                     Icon(painter = image, contentDescription = "Toggle Password Visibility")
                 }
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
+                .padding(vertical = 8.dp),
+            isError = confirmPasswordError != null
         )
+        confirmPasswordError?.let {
+            Text(text = it, color = Color.Red, fontSize = 12.sp, modifier = Modifier.fillMaxWidth().padding(start = 8.dp).align(Alignment.Start))
+        }
+
+
         Spacer(modifier = Modifier.height(20.dp))
 
         Button(
             onClick = {
+                emailError = null
+                passwordError = null
+                confirmPasswordError = null
+                nameError = null
+
+                var hasError = false
+                if (name.isEmpty()) {
+                    nameError = "Name is required"
+                    hasError = true
+                }
+                val emailPattern = "[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+".toRegex()
+
+                if (email.isEmpty()) {
+                    emailError = "Email is required"
+                    hasError = true
+                } else if (!email.matches(emailPattern)) {
+                    emailError = "Invalid email format"
+                    hasError = true
+                }
+                if (password.isEmpty()) {
+                    passwordError = "Password is required"
+                    hasError = true
+                }
+                else if (!password.matches(".*[A-Z].*".toRegex())) {
+                    passwordError = "Password must contain at least one uppercase letter"
+                    hasError = true
+                } else if (!password.matches(".*\\d.*".toRegex())) {
+                    passwordError = "Password must contain at least one number"
+                    hasError = true
+                }
+                if (confirmPassword.isEmpty()) {
+                    confirmPasswordError = "Confirm password is required"
+                    hasError = true
+                }
                 if (password != confirmPassword) {
-                    Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
-                    println("DEBUG: Passwords do not match")
-                } else if (email.isEmpty() || name.isEmpty() || password.isEmpty()) {
-                    Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
-                    println("DEBUG: Fields missing")
-                } else {
-                    println("DEBUG: Call viewModel.register()")
+                    confirmPasswordError = "Passwords do not match"
+                    hasError = true
+                }
+
+                if (!hasError) {
                     viewModel.register(name, email, password, "Guru")
                 }
             },
@@ -264,8 +317,20 @@ fun RegisterScreen(navController: NavController) {
                 fontFamily = poppinsFontFamily,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF117A65),
-                modifier = Modifier.clickable { navController.navigate(Screen.Login.route) }
+                modifier = Modifier.clickable {
+                    navController.navigate(Screen.Login.route)
+                }
             )
+        }
+    }
+    if (isLoading) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0x80000000)),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = Color.White)
         }
     }
 }

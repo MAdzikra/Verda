@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -45,8 +46,10 @@ import androidx.navigation.navArgument
 import com.example.verdaapp.navigation.NavigationItem
 import com.example.verdaapp.navigation.Screen
 import com.example.verdaapp.ui.theme.VerdaAppTheme
+import com.example.verdaapp.ui.view.course.CourseScreen
 import com.example.verdaapp.ui.view.home.HomeScreen
 import com.example.verdaapp.ui.view.login.LoginScreen
+import com.example.verdaapp.ui.view.modul.DetailCourseScreen
 import com.example.verdaapp.ui.view.register.RegisterScreen
 
 class MainActivity : ComponentActivity() {
@@ -58,8 +61,17 @@ class MainActivity : ComponentActivity() {
                 var showSplash by remember { mutableStateOf(true) }
                 val navController = rememberNavController()
 
+                val appLinkData = intent?.data
+                val token = appLinkData?.getQueryParameter("token")
+
                 LaunchedEffect(Unit) {
                     showSplash = false
+                    if (!token.isNullOrEmpty()) {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                        Toast.makeText(this@MainActivity, "Email berhasil dikonfirmasi, silakan login.", Toast.LENGTH_LONG).show()
+                    }
                 }
 
                 if (showSplash) {
@@ -72,6 +84,14 @@ class MainActivity : ComponentActivity() {
                     composable(Screen.Login.route) { LoginScreen(navController) }
                     composable(Screen.Register.route) { RegisterScreen(navController) }
                     composable(Screen.Home.route) { HomeScreen(navController) }
+                    composable(Screen.Course.route) { CourseScreen(navController) }
+                    composable(
+                        route = Screen.DetailCourse.route,
+                        arguments = listOf(navArgument("moduleId") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val moduleId = backStackEntry.arguments?.getString("moduleId") ?: ""
+                        DetailCourseScreen(moduleId = moduleId, navController = navController)
+                    }
                 }
             }
         }

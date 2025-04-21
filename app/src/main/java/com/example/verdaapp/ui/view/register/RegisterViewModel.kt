@@ -11,23 +11,27 @@ import retrofit2.HttpException
 import java.io.IOException
 
 class RegisterViewModel : ViewModel() {
-
     private val _registerState = MutableStateFlow<String?>(null)
     val registerState: StateFlow<String?> = _registerState
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
 
     fun register(name: String, email: String, password: String, role: String) {
         viewModelScope.launch {
+            _isLoading.value = true
             try {
                 val response = ApiConfig.getApiService().register(
                     RegisterRequest(username = name, email = email, password = password, role = role)
                 )
-                _registerState.value = response.message ?: "Register successful"
+                _registerState.value = "Registrasi Berhasil! Silakan cek email Anda."
             } catch (e: IOException) {
                 _registerState.value = "Network error: ${e.localizedMessage}"
             } catch (e: HttpException) {
-                _registerState.value = "Unexpected error: ${e.localizedMessage}"
+                _registerState.value = "Kesalahan: ${e.localizedMessage}. Periksa kembali data yang dimasukkan."
             } catch (e: Exception) {
-                _registerState.value = "Error: ${e.localizedMessage}"
+                _registerState.value = "Terjadi kesalahan: ${e.localizedMessage}"
+            }  finally {
+            _isLoading.value = false
             }
         }
     }

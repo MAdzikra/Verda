@@ -24,6 +24,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -69,6 +70,9 @@ fun LoginScreen(navController: NavController) {
     val activity = (context as? Activity)
     val loginViewModel: LoginViewModel = viewModel()
     val loginState by loginViewModel.loginState.collectAsState()
+    val isLoading by loginViewModel.isLoading.collectAsState()
+    var emailError by remember { mutableStateOf<String?>(null) }
+    var passwordError by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(loginState) {
         loginState?.let { message ->
@@ -136,8 +140,13 @@ fun LoginScreen(navController: NavController) {
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
+                .padding(vertical = 8.dp),
+            isError = emailError != null
         )
+        emailError?.let {
+            Text(text = it, color = Color.Red, fontSize = 12.sp, modifier = Modifier.fillMaxWidth().padding(start = 8.dp).align(Alignment.Start))
+        }
+
 
         Text(text = "Password", fontFamily = poppinsFontFamily, fontWeight = FontWeight.SemiBold, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(
@@ -166,8 +175,13 @@ fun LoginScreen(navController: NavController) {
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
+                .padding(vertical = 8.dp),
+            isError = passwordError != null
         )
+        passwordError?.let {
+            Text(text = it, color = Color.Red, fontSize = 12.sp, modifier = Modifier.fillMaxWidth().padding(start = 8.dp).align(Alignment.Start))
+        }
+
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -194,9 +208,26 @@ fun LoginScreen(navController: NavController) {
 
         Button(
             onClick = {
-                if (email.isBlank() || password.isBlank()) {
-                    Toast.makeText(context, "Email dan password tidak boleh kosong", Toast.LENGTH_SHORT).show()
-                } else {
+                emailError = null
+                passwordError = null
+
+                var hasError = false
+
+                val emailPattern = "[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+".toRegex()
+
+                if (email.isEmpty()) {
+                    emailError = "Email is required"
+                    hasError = true
+                } else if (!email.matches(emailPattern)) {
+                    emailError = "Invalid email format"
+                    hasError = true
+                }
+                if (password.isEmpty()) {
+                    passwordError = "Password is required"
+                    hasError = true
+                }
+
+                if (!hasError) {
                     loginViewModel.login(email.trim(), password)
                 }
             },
@@ -261,6 +292,16 @@ fun LoginScreen(navController: NavController) {
                 color = Color(0xFF117A65),
                 modifier = Modifier.clickable { navController.navigate(Screen.Register.route) }
             )
+        }
+    }
+    if (isLoading) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0x80000000)),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = Color.White)
         }
     }
 }

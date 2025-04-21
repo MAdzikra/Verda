@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
@@ -26,13 +27,15 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SearchBar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,15 +51,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.example.verdaapp.BottomBar
 import com.example.verdaapp.R
+import com.example.verdaapp.api.Module
 import com.example.verdaapp.ui.theme.VerdaAppTheme
 import com.example.verdaapp.ui.theme.poppinsFontFamily
 
 @Composable
 fun HomeScreen(navController: NavHostController) {
+    val viewModel: ModuleViewModel = viewModel()
+    val modules by viewModel.modules.collectAsState()
+    var searchText by remember { mutableStateOf("") }
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.fetchModules()
+    }
+
     Scaffold(
         bottomBar = { BottomBar(navController) }
     ) { paddingValues ->
@@ -67,11 +81,26 @@ fun HomeScreen(navController: NavHostController) {
                 .background(Brush.horizontalGradient(listOf(Color(0xFF27B07A), Color(0xFF86CFAC))))
         ) {
             TopBar()
-            SearchBar()
+            SearchBar(searchText = searchText, onSearchChange = { searchText = it })
             Spacer(modifier = Modifier.height(16.dp))
             BannerSection()
             Spacer(modifier = Modifier.height(25.dp))
-            CourseSection()
+
+            val filteredModules = modules.filter { module ->
+                module.judul.contains(searchText, ignoreCase = true) ||
+                        module.deskripsi.contains(searchText, ignoreCase = true)
+            }
+            CourseSection(modules = filteredModules)
+        }
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0x80000000)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Color.White)
+            }
         }
     }
 }
@@ -103,11 +132,10 @@ fun TopBar() {
 }
 
 @Composable
-fun SearchBar() {
-    var searchText by remember { mutableStateOf("") }
+fun SearchBar(searchText: String, onSearchChange: (String) -> Unit) {
     TextField(
         value = searchText,
-        onValueChange = { searchText = it },
+        onValueChange = onSearchChange,
         placeholder = { Text("Search", color = Color.White) },
         leadingIcon = {
             Icon(Icons.Default.Search, contentDescription = "Search")
@@ -159,10 +187,10 @@ fun BannerSection() {
             }
 
             Image(
-                painter = painterResource(id = R.drawable.placeholder_image),
+                painter = painterResource(id = R.drawable.banner_image),
                 contentDescription = "Nature",
                 modifier = Modifier
-                    .size(80.dp)
+                    .size(120.dp)
                     .clip(RoundedCornerShape(16.dp))
             )
         }
@@ -170,7 +198,7 @@ fun BannerSection() {
 }
 
 @Composable
-fun CourseSection() {
+fun CourseSection(modules: List<Module>) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -179,8 +207,11 @@ fun CourseSection() {
                 shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
             )
             .padding(20.dp)
-    ){
+    ) {
         Column {
+            ArticleSection()
+            Spacer(modifier = Modifier.height(16.dp))
+
             Text(
                 text = "Courses",
                 fontWeight = FontWeight.Bold,
@@ -189,25 +220,130 @@ fun CourseSection() {
             )
 
             Spacer(modifier = Modifier.height(8.dp))
-
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(16) {
-                    Box(
-                        modifier = Modifier
-                            .height(120.dp).width(160.dp)
-                            .background(Color.LightGray, RoundedCornerShape(8.dp))
+            if (modules.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No module found",
+                        color = Color.Gray,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
                     )
                 }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(modules.size) { index ->
+                        val module = modules[index]
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF86CFAC)),
+                            modifier = Modifier
+                                .height(150.dp)
+                                .width(160.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp)
+                            ) {
+                                Text(
+                                    text = module.judul,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    color = Color.White
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = module.deskripsi,
+                                    fontSize = 12.sp,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
+                }
             }
-            }
+        }
     }
 }
+
+@Composable
+fun ArticleSection() {
+    Column(modifier = Modifier) {
+        Text(
+            text = "Today's Read",
+            fontWeight = FontWeight.Bold,
+            fontSize = 18.sp,
+            color = Color.Black
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(horizontal = 4.dp)
+        ) {
+            items(2) {
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                    modifier = Modifier
+                        .width(260.dp)
+                        .height(220.dp)
+
+                ) {
+                    Box(modifier = Modifier.fillMaxSize().padding(12.dp)) {
+                        Image(
+                            painter = painterResource(id = R.drawable.placeholder_article),
+                            contentDescription = "Article Image",
+                            modifier = Modifier
+                                .width(260.dp)
+                                .height(145.dp)
+                                .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                                .align(Alignment.TopCenter)
+                        )
+
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                        ) {
+                            Text(
+                                text = "Saving the Forest for the Trees",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp,
+                                color = Color.Black
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.AccountCircle,
+                                    contentDescription = "Author",
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("CNBC", color = Color.Gray, fontSize = 12.sp)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(" - ", color = Color.Gray, fontSize = 12.sp)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("3 Hour Ago", color = Color.Gray, fontSize = 12.sp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 @Preview
 @Composable

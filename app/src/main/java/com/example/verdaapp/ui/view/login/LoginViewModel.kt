@@ -14,9 +14,12 @@ import java.io.IOException
 class LoginViewModel : ViewModel() {
     private val _loginState = MutableStateFlow<String?>(null)
     val loginState: StateFlow<String?> = _loginState.asStateFlow()
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
 
     fun login(email: String, password: String) {
         viewModelScope.launch {
+            _isLoading.value = true
             try {
                 val response = ApiConfig.getApiService().login(LoginRequest(email, password))
                 _loginState.value = response.message ?: "Login sukses"
@@ -24,8 +27,10 @@ class LoginViewModel : ViewModel() {
                 _loginState.value = "Network error: ${e.localizedMessage}"
             } catch (e: HttpException) {
                 _loginState.value = "Unexpected error: ${e.localizedMessage}"
-            }catch (e: Exception) {
+            } catch (e: Exception) {
                 _loginState.value = "Login error: ${e.message}"
+            } finally {
+                _isLoading.value = false
             }
         }
     }
