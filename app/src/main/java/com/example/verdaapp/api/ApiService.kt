@@ -18,4 +18,7 @@ interface ApiService {
 
     @GET("functions/v1/get-module/{module_id}")
     suspend fun getModuleDetail(@Path("module_id") moduleId: String): DetailCourse
+
+    @GET("functions/v1/articles")
+    suspend fun getArticles(): List<Article>
 }

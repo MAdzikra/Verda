@@ -1,9 +1,13 @@
 package com.example.verdaapp.ui.view.login
 
+import android.content.Context
+import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.verdaapp.api.ApiConfig
 import com.example.verdaapp.api.LoginRequest
+import com.example.verdaapp.datastore.UserPreferenceKeys
+import com.example.verdaapp.datastore.dataStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,11 +21,12 @@ class LoginViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
-    fun login(email: String, password: String) {
+    fun login(context: Context, email: String, password: String) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
                 val response = ApiConfig.getApiService().login(LoginRequest(email, password))
+                saveUserData(context, response.user.nama, response.token)
                 _loginState.value = response.message ?: "Login sukses"
             } catch (e: IOException) {
                 _loginState.value = "Network error: ${e.localizedMessage}"
@@ -32,6 +37,21 @@ class LoginViewModel : ViewModel() {
             } finally {
                 _isLoading.value = false
             }
+        }
+    }
+
+    private fun saveUserData(context: Context, name: String, token: String) {
+        viewModelScope.launch {
+            context.dataStore.edit { preferences ->
+                preferences[UserPreferenceKeys.USER_NAME] = name
+                preferences[UserPreferenceKeys.USER_TOKEN] = token
+            }
+        }
+    }
+
+    fun clearUserData(context: Context) {
+        viewModelScope.launch {
+            context.dataStore.edit { it.clear() }
         }
     }
 

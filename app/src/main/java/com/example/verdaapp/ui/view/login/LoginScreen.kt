@@ -228,7 +228,7 @@ fun LoginScreen(navController: NavController) {
                 }
 
                 if (!hasError) {
-                    loginViewModel.login(email.trim(), password)
+                    loginViewModel.login(context, email.trim(), password)
                 }
             },
             modifier = Modifier

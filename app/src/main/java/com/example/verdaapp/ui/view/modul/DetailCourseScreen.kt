@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -223,12 +224,12 @@ fun QuizCard() {
 fun SectionItem(section: Section) {
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF7F7F7)),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(8.dp)) {
             Text(
                 text = section.title,
                 fontSize = 16.sp,
@@ -239,7 +240,8 @@ fun SectionItem(section: Section) {
             Text(
                 text = section.content,
                 fontSize = 14.sp,
-                color = Color.DarkGray
+                color = Color.DarkGray,
+                textAlign = TextAlign.Justify
             )
         }
     }

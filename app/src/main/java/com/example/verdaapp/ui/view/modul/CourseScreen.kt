@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -44,9 +45,12 @@ import androidx.navigation.compose.rememberNavController
 import com.example.verdaapp.BottomBar
 import com.example.verdaapp.R
 import com.example.verdaapp.api.Module
+import com.example.verdaapp.datastore.UserPreferenceKeys
+import com.example.verdaapp.datastore.dataStore
 import com.example.verdaapp.navigation.Screen
 import com.example.verdaapp.ui.theme.VerdaAppTheme
 import com.example.verdaapp.ui.view.home.ModuleViewModel
+import kotlinx.coroutines.flow.map
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -98,6 +102,9 @@ fun Header() {
         val dateFormat = SimpleDateFormat("EEEE, d MMMM", Locale.getDefault())
         dateFormat.format(Date())
     }
+    val context = LocalContext.current
+    val userNameFlow = context.dataStore.data.map { it[UserPreferenceKeys.USER_NAME] ?: "User" }
+    val userName by userNameFlow.collectAsState(initial = "User")
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 24.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -107,7 +114,7 @@ fun Header() {
             modifier = Modifier.weight(1f)
         ) {
             Text(
-                text = "User",
+                text = userName,
                 color = Color.Black,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
