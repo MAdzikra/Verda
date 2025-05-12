@@ -21,4 +21,7 @@ interface ApiService {
 
     @GET("functions/v1/articles")
     suspend fun getArticles(): List<Article>
+
+    @POST("functions/v1/sync-profile")
+    suspend fun syncProfile(@Body request: SyncProfileRequest): SyncProfileResponse
 }

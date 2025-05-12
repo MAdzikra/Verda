@@ -1,6 +1,7 @@
 package com.example.verdaapp.ui.view.login
 
 import android.app.Activity
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
@@ -56,8 +57,13 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.verdaapp.R
 import com.example.verdaapp.navigation.Screen
+import com.example.verdaapp.supabase.SupabaseClient
 import com.example.verdaapp.ui.theme.VerdaAppTheme
 import com.example.verdaapp.ui.theme.poppinsFontFamily
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.compose.auth.composable.NativeSignInResult
+import io.github.jan.supabase.compose.auth.composable.rememberSignInWithGoogle
+import io.github.jan.supabase.compose.auth.composeAuth
 
 @Composable
 fun LoginScreen(navController: NavController) {
@@ -73,6 +79,57 @@ fun LoginScreen(navController: NavController) {
     val isLoading by loginViewModel.isLoading.collectAsState()
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
+    val googleLoginViewModel: GoogleLoginViewModel = viewModel()
+    val syncSuccess by googleLoginViewModel.syncSuccess.collectAsState()
+    val syncError by googleLoginViewModel.errorMessage.collectAsState()
+
+
+    val action = SupabaseClient.instance.composeAuth.rememberSignInWithGoogle(
+        onResult = { result ->
+            when (result) {
+                is NativeSignInResult.Success -> {
+                    val user = SupabaseClient.instance.auth.currentUserOrNull()
+                    val session = SupabaseClient.instance.auth.currentSessionOrNull()
+                    if (user != null) {
+                        val namaUser = user.userMetadata?.get("full_name")?.toString()?.trim('"') ?: ""
+                        val emailUser = user.email ?: ""
+                        val accessToken = session?.accessToken ?: ""
+                        googleLoginViewModel.syncGoogleUser(
+                            context = context,
+                            userId = user.id,
+                            email = emailUser,
+                            nama = namaUser,
+                            token = accessToken
+                        )
+                        googleLoginViewModel.saveUserData(context, namaUser, accessToken)
+                    }
+
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                    }
+                    Log.d("Login", "Login Google berhasil, menuju Home")
+                }
+
+                is NativeSignInResult.Error -> {
+                    Toast.makeText(
+                        context,
+                        "Login gagal: ${result.exception?.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    Log.e("Login", "Login Google gagal: ${result.exception?.message}")
+                }
+
+                is NativeSignInResult.NetworkError -> {
+                    Toast.makeText(context, "Tidak ada koneksi internet", Toast.LENGTH_SHORT).show()
+                    Log.e("Login", "Login gagal, masalah jaringan")
+                }
+
+                else -> {
+                    Log.e("Login", "Login Google: Hasil tidak diketahui")
+                }
+            }
+        }
+    )
 
     LaunchedEffect(loginState) {
         loginState?.let { message ->
@@ -85,6 +142,21 @@ fun LoginScreen(navController: NavController) {
             loginViewModel.resetLoginState()
         }
     }
+
+    LaunchedEffect(syncSuccess) {
+        if (syncSuccess) {
+            Toast.makeText(context, "Profil berhasil disinkronkan", Toast.LENGTH_SHORT).show()
+            googleLoginViewModel.resetState()
+        }
+    }
+
+    LaunchedEffect(syncError) {
+        syncError?.let {
+            Toast.makeText(context, "Gagal sinkronisasi: $it", Toast.LENGTH_SHORT).show()
+            googleLoginViewModel.resetState()
+        }
+    }
+
 
     BackHandler {
         activity?.finish()
@@ -276,7 +348,10 @@ fun LoginScreen(navController: NavController) {
             Image(
                 painter = painterResource(id = R.drawable.ic_google),
                 contentDescription = "Google",
-                modifier = Modifier.size(25.dp).clickable { /* TODO: Login Google */ }
+                modifier = Modifier.size(25.dp).clickable {
+                /* TODO: Login Google */
+                    action.startFlow()
+                }
             )
         }
 

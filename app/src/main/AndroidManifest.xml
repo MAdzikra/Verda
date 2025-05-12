@@ -25,7 +25,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <intent-filter>
+<!--            <intent-filter>-->
+<!--                <action android:name="android.intent.action.VIEW" />-->
+<!--                <category android:name="android.intent.category.DEFAULT" />-->
+<!--                <category android:name="android.intent.category.BROWSABLE" />-->
+<!--                <data-->
+<!--                    android:scheme="verda"-->
+<!--                    android:host="confirm" />-->
+<!--            </intent-filter>-->
+            <intent-filter android:label="verda-confirm">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
@@ -33,6 +41,16 @@
                     android:scheme="verda"
                     android:host="confirm" />
             </intent-filter>
+
+            <intent-filter android:label="verda-login">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="verda"
+                    android:host="login-callback" />
+            </intent-filter>
+
         </activity>
     </application>
 

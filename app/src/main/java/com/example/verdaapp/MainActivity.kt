@@ -1,6 +1,9 @@
 package com.example.verdaapp
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -27,7 +30,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -36,6 +41,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.verdaapp.datastore.UserPreferenceKeys
 import com.example.verdaapp.datastore.UserPreferenceKeys.USER_TOKEN
 import com.example.verdaapp.datastore.dataStore
 import com.example.verdaapp.navigation.NavigationItem
@@ -53,6 +59,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -61,29 +68,19 @@ class MainActivity : ComponentActivity() {
                 var showSplash by remember { mutableStateOf(true) }
                 val navController = rememberNavController()
 
-//                val appLinkData = intent?.data
-//                val token = appLinkData?.getQueryParameter("token")
-
                 LaunchedEffect(Unit) {
                     val token = this@MainActivity.dataStore.data
                         .catch { emit(emptyPreferences()) }
                         .map { it[USER_TOKEN] ?: "" }
                         .first()
-//                    val token = context.dataStore.data.map { it[UserPreferencesKeys.USER_TOKEN] ?: "" }.first()
+
                     showSplash = false
-//                    if (!token.isNullOrEmpty()) {
-//                        navController.navigate(Screen.Login.route) {
-//                            popUpTo(0) { inclusive = true }
-//                        }
-//                        Toast.makeText(this@MainActivity, "Email berhasil dikonfirmasi, silakan login.", Toast.LENGTH_LONG).show()
-//                    }
+
                     if (token.isNotEmpty()) {
-                        // langsung navigate ke HomeScreen
                         navController.navigate("home") {
                             popUpTo("splash") { inclusive = true }
                         }
                     } else {
-                        // navigate ke Login
                         navController.navigate("login") {
                             popUpTo("splash") { inclusive = true }
                         }
@@ -180,7 +177,6 @@ fun BottomBar(
                     )
                 },
                 label = { Text(item.title) },
-//                selected = false,
                 selected = currentRoute == item.screen.route,
                 onClick = {
                     navController.navigate(item.screen.route) {
@@ -195,38 +191,6 @@ fun BottomBar(
         }
     }
 }
-
-//@Composable
-//fun VerdaApp(
-//    modifier: Modifier = Modifier,
-//    navController: NavHostController = rememberNavController(),
-//) {
-//    val navBackStackEntry by navController.currentBackStackEntryAsState()
-//    val currentRoute = navBackStackEntry?.destination?.route
-//
-//    Scaffold(
-//        bottomBar = {
-//            BottomBar(navController)
-//        },
-//        modifier = modifier
-//    ) { innerPadding ->
-//        NavHost(
-//            navController = navController,
-//            startDestination = Screen.Home.route,
-//            modifier = Modifier.padding(innerPadding)
-//        ) {
-//            composable(Screen.Home.route) {
-//                HomeScreen(navController)
-//            }
-//            composable(Screen.Article.route) {
-//                ArticleScreen(navController)
-//            }
-//            composable(Screen.Course.route) {
-//                CourseScreen(navController)
-//            }
-//        }
-//    }
-//}
 
 @Preview
 @Composable
