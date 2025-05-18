@@ -5,4 +5,5 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 object UserPreferenceKeys {
     val USER_NAME = stringPreferencesKey("user_name")
     val USER_TOKEN = stringPreferencesKey("user_token")
+    val USER_ID_KEY = stringPreferencesKey("user_id")
 }

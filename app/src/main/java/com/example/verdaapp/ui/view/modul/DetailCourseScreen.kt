@@ -1,5 +1,6 @@
 package com.example.verdaapp.ui.view.modul
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -33,14 +34,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -56,8 +60,12 @@ import com.example.verdaapp.R
 import com.example.verdaapp.api.DetailCourse
 import com.example.verdaapp.api.Module
 import com.example.verdaapp.api.Section
+import com.example.verdaapp.datastore.UserPreference
+import com.example.verdaapp.datastore.UserPreferenceKeys
+import com.example.verdaapp.datastore.dataStore
 import com.example.verdaapp.ui.theme.VerdaAppTheme
 import com.example.verdaapp.ui.view.home.ModuleViewModel
+import kotlinx.coroutines.flow.map
 
 @Composable
 fun DetailCourseScreen(navController: NavHostController, moduleId: String) {
@@ -65,8 +73,12 @@ fun DetailCourseScreen(navController: NavHostController, moduleId: String) {
     val moduleDetail by viewModel.moduleDetail.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
+    val context = LocalContext.current
+    val userIdFlow = context.dataStore.data.map { it[UserPreferenceKeys.USER_ID_KEY] ?: "" }
+    val userId by userIdFlow.collectAsState(initial = "")
+
     LaunchedEffect(Unit) {
-        viewModel.fetchModuleDetail(moduleId)
+        viewModel.fetchModuleDetail(moduleId, userId)
     }
 
     Scaffold { paddingValues ->
@@ -79,8 +91,20 @@ fun DetailCourseScreen(navController: NavHostController, moduleId: String) {
             Header(navController)
             Spacer(modifier = Modifier.height(16.dp))
 
-            moduleDetail?.let {
-                IsiModule(it)
+            moduleDetail?.let { module ->
+                userId.let { uid ->
+                    IsiModule(
+                        module = module,
+                        userId = uid,
+                        onSaveProgress = { sectionId ->
+                            viewModel.saveProgress(
+                                userId = uid,
+                                moduleId = module.moduleId,
+                                sectionId = sectionId
+                            )
+                        }
+                    )
+                }
             }
         }
 
@@ -128,8 +152,71 @@ fun Header(navController: NavHostController) {
     }
 }
 
+//@Composable
+//fun IsiModule(module: DetailCourse) {
+//    LazyColumn(
+//        modifier = Modifier
+//            .fillMaxSize()
+//            .background(Color.White, shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+//            .padding(16.dp)
+//    ) {
+//        item {
+//            Text(
+//                text = module.title,
+//                fontSize = 22.sp,
+//                fontWeight = FontWeight.Bold,
+//                color = Color.Black
+//            )
+//            Spacer(modifier = Modifier.height(16.dp))
+//
+//            Text(
+//                text = module.description,
+//                fontSize = 14.sp,
+//                color = Color.DarkGray
+//            )
+//            Spacer(modifier = Modifier.height(24.dp))
+//
+//            Text(
+//                text = "Lessons",
+//                fontSize = 18.sp,
+//                fontWeight = FontWeight.Bold,
+//                color = Color.Black
+//            )
+//            Spacer(modifier = Modifier.height(12.dp))
+//            module.sections.sortedBy { it.order }.forEach { section ->
+//                SectionItem(section)
+//            }
+//            Spacer(modifier = Modifier.height(12.dp))
+//            QuizCard()
+//
+//        }
+//    }
+//}
+
 @Composable
-fun IsiModule(module: DetailCourse) {
+fun IsiModule(
+    module: DetailCourse,
+    userId: String,
+    onSaveProgress: (String) -> Unit
+) {
+    val sectionList = module.sections.sortedBy { it.order }
+    val completedSectionIds = module.completedSections ?: emptyList()
+//    val initialIndex = sectionList.indexOfFirst { it.sectionId !in completedSectionIds }
+//        .takeIf { it >= 0 } ?: sectionList.lastIndex
+//    var currentIndex by remember { mutableIntStateOf(initialIndex) }
+    var currentIndex by rememberSaveable { mutableStateOf(0) }
+    var isIndexInitialized by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(module.moduleId, completedSectionIds) {
+        if (!isIndexInitialized) {
+            val initial = sectionList.indexOfFirst { it.sectionId !in completedSectionIds }
+                .takeIf { it >= 0 } ?: sectionList.lastIndex
+            currentIndex = initial
+            isIndexInitialized = true
+        }
+    }
+    val currentSection = sectionList.getOrNull(currentIndex)
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -143,8 +230,7 @@ fun IsiModule(module: DetailCourse) {
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
             )
-            Spacer(modifier = Modifier.height(16.dp))
-
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = module.description,
                 fontSize = 14.sp,
@@ -152,22 +238,61 @@ fun IsiModule(module: DetailCourse) {
             )
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text(
-                text = "Lessons",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            module.sections.sortedBy { it.order }.forEach { section ->
-                SectionItem(section)
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            QuizCard()
+            currentSection?.let { section ->
+                Text(
+                    text = section.title,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = section.content,
+                    fontSize = 14.sp,
+                    color = Color.DarkGray,
+                    textAlign = TextAlign.Justify
+                )
+                Spacer(modifier = Modifier.height(24.dp))
 
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    if (currentIndex > 0) {
+                        Text(
+                            text = "Previous",
+                            color = Color.White,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color.Gray)
+                                .padding(12.dp)
+                                .clickable { currentIndex-- }
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.width(100.dp))
+                    }
+
+                    val isLast = currentIndex == sectionList.lastIndex
+                    Text(
+                        text = if (isLast) "Finish" else "Next",
+                        color = Color.White,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFF27B07A))
+                            .padding(12.dp)
+                            .clickable {
+                                onSaveProgress(section.sectionId)
+                                if (!isLast) {
+                                    currentIndex++
+                                }
+                            }
+                    )
+                }
+            }
         }
     }
 }
+
 
 @Composable
 fun QuizCard() {

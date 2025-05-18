@@ -94,14 +94,15 @@ fun LoginScreen(navController: NavController) {
                         val namaUser = user.userMetadata?.get("full_name")?.toString()?.trim('"') ?: ""
                         val emailUser = user.email ?: ""
                         val accessToken = session?.accessToken ?: ""
+                        val userId = user.id
                         googleLoginViewModel.syncGoogleUser(
                             context = context,
-                            userId = user.id,
+                            userId = userId,
                             email = emailUser,
                             nama = namaUser,
                             token = accessToken
                         )
-                        googleLoginViewModel.saveUserData(context, namaUser, accessToken)
+                        googleLoginViewModel.saveUserData(context, namaUser, accessToken, userId)
                     }
 
                     navController.navigate(Screen.Home.route) {

@@ -26,7 +26,7 @@ class LoginViewModel : ViewModel() {
             _isLoading.value = true
             try {
                 val response = ApiConfig.getApiService().login(LoginRequest(email, password))
-                saveUserData(context, response.user.nama, response.token)
+                saveUserData(context, response.user.nama, response.token, response.user.id)
                 _loginState.value = response.message ?: "Login sukses"
             } catch (e: IOException) {
                 _loginState.value = "Network error: ${e.localizedMessage}"
@@ -40,11 +40,12 @@ class LoginViewModel : ViewModel() {
         }
     }
 
-    private fun saveUserData(context: Context, name: String, token: String) {
+    private fun saveUserData(context: Context, name: String, token: String, userId: String) {
         viewModelScope.launch {
             context.dataStore.edit { preferences ->
                 preferences[UserPreferenceKeys.USER_NAME] = name
                 preferences[UserPreferenceKeys.USER_TOKEN] = token
+                preferences[UserPreferenceKeys.USER_ID_KEY] = userId
             }
         }
     }

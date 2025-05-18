@@ -19,7 +19,10 @@ data class DetailCourse(
     val sections: List<Section>,
 
     @SerializedName("references")
-    val references: List<Reference>
+    val references: List<Reference>,
+
+    @SerializedName("completed_sections")
+    val completedSections: List<String>
 )
 
 data class Section(

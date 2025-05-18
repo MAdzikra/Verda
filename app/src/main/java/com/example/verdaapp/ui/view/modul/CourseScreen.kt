@@ -202,7 +202,9 @@ fun CourseList(modules: List<Module>, navController: NavHostController) {
                         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
                         modifier = Modifier.fillMaxWidth().padding(8.dp)
                     ) {
-                        CourseItem(locked = module.urutan != 1,
+                        CourseItem(
+//                            locked = module.urutan != 1,
+                            locked = false,
                             title = module.judul,
                             moduleId = module.module_id.toString(),
                             navController = navController)
