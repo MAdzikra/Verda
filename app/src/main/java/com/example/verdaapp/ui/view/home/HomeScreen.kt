@@ -29,6 +29,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -63,6 +64,7 @@ import com.example.verdaapp.api.Article
 import com.example.verdaapp.api.Module
 import com.example.verdaapp.datastore.UserPreferenceKeys
 import com.example.verdaapp.datastore.dataStore
+import com.example.verdaapp.navigation.Screen
 import com.example.verdaapp.ui.theme.VerdaAppTheme
 import com.example.verdaapp.ui.theme.poppinsFontFamily
 import com.example.verdaapp.ui.view.artikel.ArticleViewModel
@@ -87,7 +89,19 @@ fun HomeScreen(navController: NavHostController) {
     }
 
     Scaffold(
-        bottomBar = { BottomBar(navController) }
+        bottomBar = { BottomBar(navController) },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { navController.navigate(Screen.Chatbot.route) },
+                containerColor = Color(0xFF27B07A)
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_chat),
+                    contentDescription = "Chatbot",
+                    tint = Color.White
+                )
+            }
+        }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -98,14 +112,14 @@ fun HomeScreen(navController: NavHostController) {
             TopBar(navController)
             SearchBar(searchText = searchText, onSearchChange = { searchText = it })
             Spacer(modifier = Modifier.height(16.dp))
-            BannerSection()
+            BannerSection(navController)
             Spacer(modifier = Modifier.height(25.dp))
 
             val filteredModules = modules.filter { module ->
                 module.judul.contains(searchText, ignoreCase = true) ||
                         module.deskripsi.contains(searchText, ignoreCase = true)
             }
-            CourseSection(modules = filteredModules, articles = articles)
+            CourseSection(modules = filteredModules, articles = articles, navController)
         }
         if (isLoading) {
             Box(
@@ -139,8 +153,8 @@ fun TopBar(navController: NavHostController) {
         )
 
         Icon(
-            painter = painterResource(id = R.drawable.ic_profile),
-            contentDescription = "Profile",
+            painter = painterResource(id = R.drawable.ic_logout),
+            contentDescription = "Logout",
             modifier = Modifier
                 .size(50.dp)
                 .background(Color.LightGray, CircleShape)
@@ -187,7 +201,7 @@ fun SearchBar(searchText: String, onSearchChange: (String) -> Unit) {
 }
 
 @Composable
-fun BannerSection() {
+fun BannerSection(navController: NavHostController) {
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFD6F5E1)),
@@ -209,7 +223,11 @@ fun BannerSection() {
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Button(
-                    onClick = {},
+                    onClick = {
+                        navController.navigate(Screen.Course.route) {
+                            popUpTo(Screen.Home.route) { inclusive = true }
+                        }
+                    },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White)
                 ) {
                     Text("Explore course", color = Color(0xFF6CB30B), fontFamily = poppinsFontFamily, fontWeight = FontWeight.Bold)
@@ -228,7 +246,7 @@ fun BannerSection() {
 }
 
 @Composable
-fun CourseSection(modules: List<Module>, articles: List<Article>) {
+fun CourseSection(modules: List<Module>, articles: List<Article>, navController: NavHostController) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -239,7 +257,7 @@ fun CourseSection(modules: List<Module>, articles: List<Article>) {
             .padding(20.dp)
     ) {
         Column {
-            ArticleSection(articles = articles)
+            ArticleSection(articles = articles, navController)
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
@@ -280,6 +298,9 @@ fun CourseSection(modules: List<Module>, articles: List<Article>) {
                             modifier = Modifier
                                 .height(150.dp)
                                 .width(160.dp)
+                                .clickable {
+                                    navController.navigate(Screen.DetailCourse.createRoute(module.module_id.toString()))
+                                }
                         ) {
                             Column(
                                 modifier = Modifier.padding(12.dp)
@@ -306,7 +327,7 @@ fun CourseSection(modules: List<Module>, articles: List<Article>) {
 }
 
 @Composable
-fun ArticleSection(articles: List<Article>) {
+fun ArticleSection(articles: List<Article>, navController: NavHostController) {
     Column(modifier = Modifier) {
         Text(
             text = "Today's Read",
@@ -344,6 +365,9 @@ fun ArticleSection(articles: List<Article>) {
                         modifier = Modifier
                             .width(260.dp)
                             .height(120.dp)
+                            .clickable {
+                                navController.navigate(Screen.DetailArticle.createRoute(article.id))
+                            }
                     ) {
                         Box(
                             modifier = Modifier

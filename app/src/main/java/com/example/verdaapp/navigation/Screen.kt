@@ -12,6 +12,12 @@ sealed class Screen(val route: String) {
         fun createRoute(articleId: String) = "detail_article/$articleId"
     }
     data object Article : Screen("article")
-    data object Kuis : Screen("kuis")
+    data object Kuis : Screen("kuis/{moduleId}") {
+        fun createRoute(moduleId: String) = "kuis/$moduleId"
+    }
     data object Chatbot : Screen("chatbot")
+    data object ForgotPassword : Screen("forgot")
+    data object ResetPassword : Screen("reset-password?access_token={access_token}") {
+        fun createRoute(token: String) = "reset-password?access_token=$token"
+    }
 }

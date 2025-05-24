@@ -1,5 +1,6 @@
 package com.example.verdaapp.ui.view.modul
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -59,12 +60,15 @@ import com.example.verdaapp.BottomBar
 import com.example.verdaapp.R
 import com.example.verdaapp.api.DetailCourse
 import com.example.verdaapp.api.Module
+import com.example.verdaapp.api.Quiz
 import com.example.verdaapp.api.Section
 import com.example.verdaapp.datastore.UserPreference
 import com.example.verdaapp.datastore.UserPreferenceKeys
 import com.example.verdaapp.datastore.dataStore
+import com.example.verdaapp.navigation.Screen
 import com.example.verdaapp.ui.theme.VerdaAppTheme
 import com.example.verdaapp.ui.view.home.ModuleViewModel
+import com.example.verdaapp.ui.view.kuis.QuizViewModel
 import kotlinx.coroutines.flow.map
 
 @Composable
@@ -72,13 +76,18 @@ fun DetailCourseScreen(navController: NavHostController, moduleId: String) {
     val viewModel: DetailCourseViewModel = viewModel()
     val moduleDetail by viewModel.moduleDetail.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val quizViewModel: QuizViewModel = viewModel()
+    val quizList = quizViewModel.quiz.collectAsState(initial = emptyList()).value
 
     val context = LocalContext.current
     val userIdFlow = context.dataStore.data.map { it[UserPreferenceKeys.USER_ID_KEY] ?: "" }
     val userId by userIdFlow.collectAsState(initial = "")
 
-    LaunchedEffect(Unit) {
-        viewModel.fetchModuleDetail(moduleId, userId)
+    LaunchedEffect(userId) {
+        if (userId.isNotBlank()) {
+            viewModel.fetchModuleDetail(moduleId, userId)
+            quizViewModel.fetchQuiz(moduleId)
+        }
     }
 
     Scaffold { paddingValues ->
@@ -92,6 +101,7 @@ fun DetailCourseScreen(navController: NavHostController, moduleId: String) {
             Spacer(modifier = Modifier.height(16.dp))
 
             moduleDetail?.let { module ->
+                val quizForModule = quizList.firstOrNull { it.quizId.toString() == module.moduleId }
                 userId.let { uid ->
                     IsiModule(
                         module = module,
@@ -102,7 +112,14 @@ fun DetailCourseScreen(navController: NavHostController, moduleId: String) {
                                 moduleId = module.moduleId,
                                 sectionId = sectionId
                             )
-                        }
+                        },
+                        navController,
+                        quiz = quizForModule ?: Quiz(
+                            quizId = module.moduleId.toInt(),
+                            judul = "Quiz Sessions",
+                            deskripsi = "No Quiz Available",
+                            questions = emptyList()
+                        )
                     )
                 }
             }
@@ -197,13 +214,12 @@ fun Header(navController: NavHostController) {
 fun IsiModule(
     module: DetailCourse,
     userId: String,
-    onSaveProgress: (String) -> Unit
+    onSaveProgress: (String) -> Unit,
+    navController: NavHostController,
+    quiz: Quiz
 ) {
     val sectionList = module.sections.sortedBy { it.order }
     val completedSectionIds = module.completedSections ?: emptyList()
-//    val initialIndex = sectionList.indexOfFirst { it.sectionId !in completedSectionIds }
-//        .takeIf { it >= 0 } ?: sectionList.lastIndex
-//    var currentIndex by remember { mutableIntStateOf(initialIndex) }
     var currentIndex by rememberSaveable { mutableStateOf(0) }
     var isIndexInitialized by rememberSaveable { mutableStateOf(false) }
 
@@ -214,6 +230,7 @@ fun IsiModule(
             currentIndex = initial
             isIndexInitialized = true
         }
+        Log.d("ModuleDetail", "Completed Sections: ${module.completedSections}")
     }
     val currentSection = sectionList.getOrNull(currentIndex)
 
@@ -238,6 +255,37 @@ fun IsiModule(
             )
             Spacer(modifier = Modifier.height(24.dp))
 
+            Text("Progress", fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+            sectionList.forEachIndexed { index, section ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                        .clickable { currentIndex = index }
+                ) {
+                    val isDone = section.sectionId in completedSectionIds
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clip(CircleShape)
+                            .background(if (isDone) Color(0xFF27B07A) else Color.LightGray),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isDone) {
+                            Text("✔", color = Color.White, fontSize = 12.sp)
+                        } else {
+                            Text("${index + 1}", color = Color.White, fontSize = 12.sp)
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(section.title, fontSize = 14.sp)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             currentSection?.let { section ->
                 Text(
                     text = section.title,
@@ -253,6 +301,12 @@ fun IsiModule(
                     textAlign = TextAlign.Justify
                 )
                 Spacer(modifier = Modifier.height(24.dp))
+
+                if (currentIndex == sectionList.lastIndex) {
+//                    Spacer(modifier = Modifier.height(24.dp))
+                    QuizCard(title = quiz.judul, questionCount = quiz.questions.size, navController, module)
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -284,6 +338,9 @@ fun IsiModule(
                                 onSaveProgress(section.sectionId)
                                 if (!isLast) {
                                     currentIndex++
+                                } else {
+                                    navController.popBackStack()
+//                                    navController.navigate(Screen.Kuis.createRoute(module.moduleId))
                                 }
                             }
                     )
@@ -295,13 +352,14 @@ fun IsiModule(
 
 
 @Composable
-fun QuizCard() {
+fun QuizCard(title: String, questionCount: Int, navController: NavHostController, module: DetailCourse) {
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFF7F7F7)),
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
+            .clickable { navController.navigate(Screen.Kuis.createRoute(module.moduleId)) }
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -315,7 +373,7 @@ fun QuizCard() {
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(
-                    text = "Quiz Sessions",
+                    text = title,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
@@ -329,55 +387,9 @@ fun QuizCard() {
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "50 Question", fontSize = 12.sp, color = Color.Gray)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_time),
-                        contentDescription = "Duration",
-                        tint = Color.Gray,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "1h 20min", fontSize = 12.sp, color = Color.Gray)
+                    Text(text = "$questionCount Question", fontSize = 12.sp, color = Color.Gray)
                 }
             }
         }
-    }
-}
-
-@Composable
-fun SectionItem(section: Section) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-    ) {
-        Column(modifier = Modifier.padding(8.dp)) {
-            Text(
-                text = section.title,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = section.content,
-                fontSize = 14.sp,
-                color = Color.DarkGray,
-                textAlign = TextAlign.Justify
-            )
-        }
-    }
-}
-
-
-@Preview
-@Composable
-private fun DetailPrev() {
-    VerdaAppTheme {
-        val navController = rememberNavController()
-        DetailCourseScreen(navController, "")
     }
 }

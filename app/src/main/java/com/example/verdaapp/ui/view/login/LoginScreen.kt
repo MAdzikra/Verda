@@ -273,7 +273,10 @@ fun LoginScreen(navController: NavController) {
                 color = Color.Gray,
                 fontSize = 14.sp,
                 fontFamily = poppinsFontFamily,
-                modifier = Modifier.clickable { /* TODO: Tambahkan aksi */ }
+                modifier = Modifier.clickable {
+                /* TODO: Tambahkan aksi */
+                navController.navigate(Screen.ForgotPassword.route)
+                }
             )
         }
 

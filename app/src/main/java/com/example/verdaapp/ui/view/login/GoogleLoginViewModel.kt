@@ -7,7 +7,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.verdaapp.api.ApiConfig
 import com.example.verdaapp.api.SyncProfileRequest
-import com.example.verdaapp.datastore.UserPreference
 import com.example.verdaapp.datastore.UserPreferenceKeys
 import com.example.verdaapp.datastore.dataStore
 import kotlinx.coroutines.flow.MutableStateFlow
