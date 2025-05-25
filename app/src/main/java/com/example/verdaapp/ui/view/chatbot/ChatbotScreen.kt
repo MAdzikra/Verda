@@ -23,7 +23,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -31,12 +30,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -45,8 +41,6 @@ import androidx.navigation.compose.rememberNavController
 import com.example.verdaapp.R
 import com.example.verdaapp.api.ChatRequest
 import com.example.verdaapp.api.ChatbotApiConfig
-import com.example.verdaapp.datastore.UserPreferenceKeys
-import com.example.verdaapp.datastore.dataStore
 import com.example.verdaapp.ui.theme.VerdaAppTheme
 import kotlinx.coroutines.launch
 
@@ -63,17 +57,6 @@ fun ChatbotScreen(navController: NavHostController) {
             Spacer(modifier = Modifier.height(16.dp))
             IsiChat()
         }
-
-//        if (isLoading) {
-//            Box(
-//                modifier = Modifier
-//                    .fillMaxSize()
-//                    .background(Color(0x80000000)),
-//                contentAlignment = Alignment.Center
-//            ) {
-//                CircularProgressIndicator(color = Color.White)
-//            }
-//        }
     }
 }
 
@@ -113,7 +96,7 @@ fun IsiChat() {
     var message by rememberSaveable { mutableStateOf("") }
     var chatMessages by rememberSaveable {
         mutableStateOf(
-            listOf<Pair<String, Boolean>>() // Pair(message, isUser)
+            listOf<Pair<String, Boolean>>()
         )
     }
     var isLoading by rememberSaveable { mutableStateOf(false) }
@@ -138,12 +121,6 @@ fun IsiChat() {
                 .weight(1f)
                 .padding(bottom = 8.dp)
         ) {
-//            item(chatMessages.forEach { (text, isUser) ->
-//                ChatBubble(text = text, isUser = isUser)
-//            }
-//            if (isLoading) {
-//                ChatBubble(text = "Mengetik...", isUser = false)
-//            }
             items(chatMessages) { (text, isUser) ->
                 ChatBubble(text = text, isUser = isUser)
             }

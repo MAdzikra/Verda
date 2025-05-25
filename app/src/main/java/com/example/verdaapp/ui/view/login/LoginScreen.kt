@@ -274,8 +274,7 @@ fun LoginScreen(navController: NavController) {
                 fontSize = 14.sp,
                 fontFamily = poppinsFontFamily,
                 modifier = Modifier.clickable {
-                /* TODO: Tambahkan aksi */
-                navController.navigate(Screen.ForgotPassword.route)
+                    navController.navigate(Screen.ForgotPassword.route)
                 }
             )
         }

@@ -4,7 +4,6 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.verdaapp.api.ApiConfig
-import com.example.verdaapp.api.ApiService
 import com.example.verdaapp.api.DetailCourse
 import com.example.verdaapp.api.SaveProgressRequest
 import kotlinx.coroutines.flow.MutableStateFlow

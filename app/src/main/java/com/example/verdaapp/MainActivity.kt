@@ -1,8 +1,5 @@
 package com.example.verdaapp
 
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -32,10 +29,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
-import androidx.lifecycle.lifecycleScope
-import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -44,8 +38,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import androidx.navigation.navDeepLink
-import com.example.verdaapp.datastore.UserPreferenceKeys
 import com.example.verdaapp.datastore.UserPreferenceKeys.USER_TOKEN
 import com.example.verdaapp.datastore.dataStore
 import com.example.verdaapp.navigation.NavigationItem
@@ -54,7 +46,7 @@ import com.example.verdaapp.ui.theme.VerdaAppTheme
 import com.example.verdaapp.ui.view.artikel.ArticleScreen
 import com.example.verdaapp.ui.view.artikel.DetailArticleScreen
 import com.example.verdaapp.ui.view.chatbot.ChatbotScreen
-import com.example.verdaapp.ui.view.course.CourseScreen
+import com.example.verdaapp.ui.view.modul.CourseScreen
 import com.example.verdaapp.ui.view.forgot.ForgotPasswordScreen
 import com.example.verdaapp.ui.view.forgot.ResetPasswordScreen
 import com.example.verdaapp.ui.view.home.HomeScreen
@@ -64,7 +56,6 @@ import com.example.verdaapp.ui.view.modul.DetailCourseScreen
 import com.example.verdaapp.ui.view.register.RegisterScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 
@@ -137,7 +128,6 @@ class MainActivity : ComponentActivity() {
                             })
                         ) { backStackEntry ->
                             val moduleId = backStackEntry.arguments?.getString("moduleId") ?: ""
-                            val userId = backStackEntry.arguments?.getString("userId") ?: ""
                             DetailCourseScreen(moduleId = moduleId, navController = navController)
                         }
 
@@ -155,7 +145,6 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable(
-//                            route = Screen.ResetPassword.route,
                             route = "reset-password?access_token={access_token}",
                             arguments = listOf(
                                 navArgument("access_token") {
@@ -167,35 +156,12 @@ class MainActivity : ComponentActivity() {
                         ) { backStackEntry ->
                             val uri = intent?.data
                             val tokenUri = uri?.getQueryParameter("access_token") ?: ""
-//                            val token = backStackEntry.arguments?.getString("access_token") ?: ""
-//                            Log.d("ResetPasswordScreen", "Received token: $token")
                             Log.d("ResetPasswordScreen", "Received token: $tokenUri")
                             ResetPasswordScreen(navController, token = tokenUri)
                         }
-
-//                        composable(
-//                            route = Screen.ResetPassword.route,
-//                            arguments = listOf(navArgument("token") { defaultValue = "" })
-//                        ) { backStackEntry ->
-//                            val token = backStackEntry.arguments?.getString("token") ?: ""
-//                            ResetPasswordScreen(navController, token)
-//                        }
-
                     }
                 }
             }
-        }
-    }
-
-    suspend fun Context.getTokenFromDataStore(): String {
-        return try {
-            this.dataStore.data
-                .catch { emit(emptyPreferences()) }
-                .map { preferences -> preferences[USER_TOKEN] }
-                .firstOrNull() ?: ""
-        } catch (e: Exception) {
-            e.printStackTrace()
-            ""
         }
     }
 }
