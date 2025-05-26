@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -47,6 +48,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
@@ -214,7 +217,11 @@ fun LoginScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
-            isError = emailError != null
+            isError = emailError != null,
+            keyboardOptions = KeyboardOptions(
+                imeAction = ImeAction.Next,
+                autoCorrect = false
+            ),
         )
         emailError?.let {
             Text(text = it, color = Color.Red, fontSize = 12.sp, modifier = Modifier.fillMaxWidth().padding(start = 8.dp).align(Alignment.Start))
@@ -249,7 +256,12 @@ fun LoginScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
-            isError = passwordError != null
+            isError = passwordError != null,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Next,
+                autoCorrect = false
+            )
         )
         passwordError?.let {
             Text(text = it, color = Color.Red, fontSize = 12.sp, modifier = Modifier.fillMaxWidth().padding(start = 8.dp).align(Alignment.Start))
