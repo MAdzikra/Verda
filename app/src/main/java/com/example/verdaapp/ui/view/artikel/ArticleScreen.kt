@@ -20,6 +20,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -41,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -48,14 +51,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.verdaapp.BottomBar
 import com.example.verdaapp.R
 import com.example.verdaapp.api.Article
+import com.example.verdaapp.datastore.dataStore
 import com.example.verdaapp.navigation.Screen
 import com.example.verdaapp.ui.theme.VerdaAppTheme
 import com.example.verdaapp.ui.theme.poppinsFontFamily
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 
 @Composable
@@ -66,9 +75,39 @@ fun ArticleScreen(navController: NavHostController) {
 
     var isSearching by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+    var showLogoutDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.fetchArticles()
+    }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("Konfirmasi Logout") },
+            text = { Text("Apakah Anda yakin ingin logout?") },
+            confirmButton = {
+                Button(onClick = {
+                    showLogoutDialog = false
+                    CoroutineScope(Dispatchers.IO).launch {
+                        context.dataStore.edit { it.clear() }
+                        withContext(Dispatchers.Main) {
+                            navController.navigate("login") {
+                                popUpTo("home") { inclusive = true }
+                            }
+                        }
+                    }
+                }) {
+                    Text("Ya")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showLogoutDialog = false }) {
+                    Text("Batal")
+                }
+            }
+        )
     }
 
     Scaffold(bottomBar = { BottomBar(navController) }) { paddingValues ->
@@ -88,7 +127,9 @@ fun ArticleScreen(navController: NavHostController) {
                     onSearchQueryChange = { searchQuery = it },
                     isSearching = isSearching,
                     onSearchToggle = { isSearching = !isSearching }
-                )
+                )  {
+                    showLogoutDialog = true
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -124,7 +165,8 @@ fun TopBarArticles(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     isSearching: Boolean,
-    onSearchToggle: () -> Unit
+    onSearchToggle: () -> Unit,
+    onLogoutClicked: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -173,13 +215,15 @@ fun TopBarArticles(
             )
 
             Icon(
-                painter = painterResource(id = R.drawable.ic_profile),
-                contentDescription = "Profile",
+                painter = painterResource(id = R.drawable.ic_logout),
+                contentDescription = "Logout",
                 modifier = Modifier
                     .size(40.dp)
-                    .clip(CircleShape)
-                    .background(Color.LightGray)
-                    .padding(8.dp)
+                    .background(Color.LightGray, CircleShape)
+                    .padding(10.dp)
+                    .clickable {
+                        onLogoutClicked()
+                    }
             )
         }
     }

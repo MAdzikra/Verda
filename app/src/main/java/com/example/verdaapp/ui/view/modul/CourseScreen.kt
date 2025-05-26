@@ -10,6 +10,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -37,18 +39,24 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.example.verdaapp.BottomBar
 import com.example.verdaapp.R
 import com.example.verdaapp.api.Module
+import com.example.verdaapp.datastore.UserPreference
 import com.example.verdaapp.datastore.UserPreferenceKeys
 import com.example.verdaapp.datastore.dataStore
 import com.example.verdaapp.navigation.Screen
 import com.example.verdaapp.ui.theme.VerdaAppTheme
 import com.example.verdaapp.ui.view.home.ModuleViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -60,8 +68,45 @@ fun CourseScreen(navController: NavHostController) {
     val modules by viewModel.modules.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    LaunchedEffect(Unit) {
-        viewModel.fetchModules()
+    var showLogoutDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    val userIdFlow = context.dataStore.data.map { preferences -> preferences[UserPreferenceKeys.USER_ID_KEY] ?: "" }
+    val userId by userIdFlow.collectAsState(initial = "")
+
+
+    LaunchedEffect(userId) {
+        if (userId.isNotBlank()) {
+            viewModel.fetchModules(userId)
+        }
+    }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("Konfirmasi Logout") },
+            text = { Text("Apakah Anda yakin ingin logout?") },
+            confirmButton = {
+                Button(onClick = {
+                    showLogoutDialog = false
+                    CoroutineScope(Dispatchers.IO).launch {
+                        context.dataStore.edit { it.clear() }
+                        withContext(Dispatchers.Main) {
+                            navController.navigate("login") {
+                                popUpTo("home") { inclusive = true }
+                            }
+                        }
+                    }
+                }) {
+                    Text("Ya")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showLogoutDialog = false }) {
+                    Text("Batal")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -73,7 +118,9 @@ fun CourseScreen(navController: NavHostController) {
                 .background(Brush.horizontalGradient(listOf(Color(0xFF27B07A), Color(0xFF86CFAC))))
                 .padding(paddingValues)
         ) {
-            Header()
+            Header() {
+                showLogoutDialog = true
+            }
             SearchBar(searchText = searchText, onSearchChange = { searchText = it })
             Spacer(modifier = Modifier.height(16.dp))
             val filteredModules = modules.filter { module ->
@@ -95,7 +142,7 @@ fun CourseScreen(navController: NavHostController) {
 }
 
 @Composable
-fun Header() {
+fun Header(onLogoutClicked: () -> Unit) {
     val currentDate = remember {
         val dateFormat = SimpleDateFormat("EEEE, d MMMM", Locale.getDefault())
         dateFormat.format(Date())
@@ -125,12 +172,15 @@ fun Header() {
             )
         }
         Icon(
-            painter = painterResource(id = R.drawable.ic_profile),
-            contentDescription = "Profile",
+            painter = painterResource(id = R.drawable.ic_logout),
+            contentDescription = "Logout",
             modifier = Modifier
-                .size(50.dp)
+                .size(40.dp)
                 .background(Color.LightGray, CircleShape)
-                .padding(8.dp)
+                .padding(10.dp)
+                .clickable {
+                    onLogoutClicked()
+                }
         )
     }
 }
@@ -162,6 +212,9 @@ fun SearchBar(searchText: String, onSearchChange: (String) -> Unit) {
 
 @Composable
 fun CourseList(modules: List<Module>, navController: NavHostController) {
+    val viewModel: ModuleViewModel = viewModel()
+    val sectionCounts by viewModel.sectionCounts.collectAsState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -194,6 +247,7 @@ fun CourseList(modules: List<Module>, navController: NavHostController) {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(modules.size) { index ->
                     val module = modules[index]
+                    val sectionCount = sectionCounts[module.module_id] ?: 0
                     Card(
                         shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -205,6 +259,7 @@ fun CourseList(modules: List<Module>, navController: NavHostController) {
                             locked = false,
                             title = module.judul,
                             moduleId = module.module_id.toString(),
+                            lessonCount = sectionCount,
                             navController = navController)
                     }
                 }
@@ -214,7 +269,7 @@ fun CourseList(modules: List<Module>, navController: NavHostController) {
 }
 
 @Composable
-fun CourseItem(locked: Boolean, title: String, moduleId: String, navController: NavHostController) {
+fun CourseItem(locked: Boolean, title: String, moduleId: String, lessonCount: Int, navController: NavHostController) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -255,7 +310,7 @@ fun CourseItem(locked: Boolean, title: String, moduleId: String, navController: 
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("4 Lessons", fontSize = 12.sp, color = Color.Gray)
+                    Text("$lessonCount Lessons", fontSize = 12.sp, color = Color.Gray)
                     Spacer(modifier = Modifier.width(12.dp))
                     Icon(
                         painter = painterResource(id = R.drawable.ic_time),
@@ -264,7 +319,7 @@ fun CourseItem(locked: Boolean, title: String, moduleId: String, navController: 
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("4h 45min", fontSize = 12.sp, color = Color.Gray)
+                    Text("~", fontSize = 12.sp, color = Color.Gray)
                 }
             }
 

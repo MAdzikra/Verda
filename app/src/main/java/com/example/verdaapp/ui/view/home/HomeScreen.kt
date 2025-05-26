@@ -13,9 +13,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -24,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -82,10 +85,42 @@ fun HomeScreen(navController: NavHostController) {
     val isLoading by viewModel.isLoading.collectAsState()
     val articleViewModel: ArticleViewModel = viewModel()
     val articles by articleViewModel.articles.collectAsState()
+    var showLogoutDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val userIdFlow = context.dataStore.data.map { preferences -> preferences[UserPreferenceKeys.USER_ID_KEY] ?: "" }
+    val userId by userIdFlow.collectAsState(initial = "")
 
     LaunchedEffect(Unit) {
-        viewModel.fetchModules()
+        viewModel.fetchModules(userId)
         articleViewModel.fetchArticles()
+    }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("Konfirmasi Logout") },
+            text = { Text("Apakah Anda yakin ingin logout?") },
+            confirmButton = {
+                Button(onClick = {
+                    showLogoutDialog = false
+                    CoroutineScope(Dispatchers.IO).launch {
+                        context.dataStore.edit { it.clear() }
+                        withContext(Dispatchers.Main) {
+                            navController.navigate("login") {
+                                popUpTo("home") { inclusive = true }
+                            }
+                        }
+                    }
+                }) {
+                    Text("Ya")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showLogoutDialog = false }) {
+                    Text("Batal")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -109,7 +144,9 @@ fun HomeScreen(navController: NavHostController) {
                 .padding(paddingValues)
                 .background(Brush.horizontalGradient(listOf(Color(0xFF27B07A), Color(0xFF86CFAC))))
         ) {
-            TopBar(navController)
+            TopBar(navController) {
+                showLogoutDialog = true
+            }
             SearchBar(searchText = searchText, onSearchChange = { searchText = it })
             Spacer(modifier = Modifier.height(16.dp))
             BannerSection(navController)
@@ -135,7 +172,7 @@ fun HomeScreen(navController: NavHostController) {
 }
 
 @Composable
-fun TopBar(navController: NavHostController) {
+fun TopBar(navController: NavHostController, onLogoutClicked: () -> Unit) {
     val context = LocalContext.current
     val userNameFlow = context.dataStore.data.map { it[UserPreferenceKeys.USER_NAME] ?: "User" }
     val userName by userNameFlow.collectAsState(initial = "User")
@@ -156,20 +193,21 @@ fun TopBar(navController: NavHostController) {
             painter = painterResource(id = R.drawable.ic_logout),
             contentDescription = "Logout",
             modifier = Modifier
-                .size(50.dp)
+                .size(40.dp)
                 .background(Color.LightGray, CircleShape)
-                .padding(8.dp)
+                .padding(10.dp)
                 .clickable {
-                    CoroutineScope(Dispatchers.IO).launch {
-                        context.dataStore.edit {
-                            it.clear()
-                        }
-                        withContext(Dispatchers.Main) {
-                            navController.navigate("login") {
-                                popUpTo("home") { inclusive = true }
-                            }
-                        }
-                    }
+                    onLogoutClicked()
+//                    CoroutineScope(Dispatchers.IO).launch {
+//                        context.dataStore.edit {
+//                            it.clear()
+//                        }
+//                        withContext(Dispatchers.Main) {
+//                            navController.navigate("login") {
+//                                popUpTo("home") { inclusive = true }
+//                            }
+//                        }
+//                    }
                 }
         )
     }
@@ -245,6 +283,87 @@ fun BannerSection(navController: NavHostController) {
     }
 }
 
+//@Composable
+//fun CourseSection(modules: List<Module>, articles: List<Article>, navController: NavHostController) {
+//    Box(
+//        modifier = Modifier
+//            .fillMaxSize()
+//            .background(
+//                color = Color.White,
+//                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+//            )
+//            .padding(20.dp)
+//    ) {
+//        Column {
+//            ArticleSection(articles = articles, navController)
+//            Spacer(modifier = Modifier.height(16.dp))
+//
+//            Text(
+//                text = "Courses",
+//                fontWeight = FontWeight.Bold,
+//                fontSize = 18.sp,
+//                color = Color.Black
+//            )
+//
+//            Spacer(modifier = Modifier.height(8.dp))
+//            if (modules.isEmpty()) {
+//                Box(
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .padding(top = 32.dp),
+//                    contentAlignment = Alignment.Center
+//                ) {
+//                    Text(
+//                        text = "No module found",
+//                        color = Color.Gray,
+//                        fontSize = 16.sp,
+//                        fontWeight = FontWeight.Medium
+//                    )
+//                }
+//            } else {
+//                LazyVerticalGrid(
+//                    columns = GridCells.Fixed(2),
+//                    modifier = Modifier.fillMaxWidth(),
+//                    contentPadding = PaddingValues(8.dp),
+//                    verticalArrangement = Arrangement.spacedBy(8.dp),
+//                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+//                ) {
+//                    items(modules.size) { index ->
+//                        val module = modules[index]
+//                        Card(
+//                            shape = RoundedCornerShape(12.dp),
+//                            colors = CardDefaults.cardColors(containerColor = Color(0xFF86CFAC)),
+//                            modifier = Modifier
+//                                .height(150.dp)
+//                                .width(160.dp)
+//                                .clickable {
+//                                    navController.navigate(Screen.DetailCourse.createRoute(module.module_id.toString()))
+//                                }
+//                        ) {
+//                            Column(
+//                                modifier = Modifier.padding(12.dp)
+//                            ) {
+//                                Text(
+//                                    text = module.judul,
+//                                    fontWeight = FontWeight.Bold,
+//                                    fontSize = 14.sp,
+//                                    color = Color.White
+//                                )
+//                                Spacer(modifier = Modifier.height(8.dp))
+//                                Text(
+//                                    text = module.deskripsi,
+//                                    fontSize = 12.sp,
+//                                    color = Color.White
+//                                )
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//    }
+//}
+
 @Composable
 fun CourseSection(modules: List<Module>, articles: List<Article>, navController: NavHostController) {
     Box(
@@ -256,67 +375,74 @@ fun CourseSection(modules: List<Module>, articles: List<Article>, navController:
             )
             .padding(20.dp)
     ) {
-        Column {
-            ArticleSection(articles = articles, navController)
-            Spacer(modifier = Modifier.height(16.dp))
+        LazyColumn(
+            contentPadding = PaddingValues(bottom = 80.dp), // agar tidak kepotong
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                ArticleSection(articles = articles, navController)
+            }
 
-            Text(
-                text = "Courses",
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                color = Color.Black
-            )
+            item {
+                Text(
+                    text = "Courses",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Color.Black
+                )
+            }
 
-            Spacer(modifier = Modifier.height(8.dp))
-            if (modules.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No module found",
-                        color = Color.Gray,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(modules.size) { index ->
-                        val module = modules[index]
-                        Card(
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFF86CFAC)),
-                            modifier = Modifier
-                                .height(150.dp)
-                                .width(160.dp)
-                                .clickable {
-                                    navController.navigate(Screen.DetailCourse.createRoute(module.module_id.toString()))
-                                }
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(12.dp)
+            item {
+                if (modules.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No module found",
+                            color = Color.Gray,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 1000.dp), // batas tinggi, bisa diatur sesuai kebutuhan
+                        contentPadding = PaddingValues(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(modules.size) { index ->
+                            val module = modules[index]
+                            Card(
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFF86CFAC)),
+                                modifier = Modifier
+                                    .height(150.dp)
+                                    .width(160.dp)
+                                    .clickable {
+                                        navController.navigate(Screen.DetailCourse.createRoute(module.module_id.toString()))
+                                    }
                             ) {
-                                Text(
-                                    text = module.judul,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
-                                    color = Color.White
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = module.deskripsi,
-                                    fontSize = 12.sp,
-                                    color = Color.White
-                                )
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text(
+                                        text = module.judul,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = Color.White
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = module.deskripsi,
+                                        fontSize = 12.sp,
+                                        color = Color.White
+                                    )
+                                }
                             }
                         }
                     }
@@ -325,6 +451,7 @@ fun CourseSection(modules: List<Module>, articles: List<Article>, navController:
         }
     }
 }
+
 
 @Composable
 fun ArticleSection(articles: List<Article>, navController: NavHostController) {

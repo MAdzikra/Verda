@@ -103,6 +103,12 @@ fun IsiChat() {
 
     val listState = rememberLazyListState()
 
+    LaunchedEffect(Unit) {
+        if (chatMessages.isEmpty()) {
+            chatMessages = chatMessages + ("Ada yang bisa saya bantu?" to false)
+        }
+    }
+
     LaunchedEffect(chatMessages.size) {
         listState.animateScrollToItem(chatMessages.size)
     }
