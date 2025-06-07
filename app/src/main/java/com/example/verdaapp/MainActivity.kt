@@ -72,14 +72,20 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(currentIntent) {
                     delay(3000)
                     val uri = currentIntent?.data
+                    val host = uri?.host
                     val tokenFromUri = uri?.getQueryParameter("access_token")
 
                     Log.d("DeepLink", "Intent data: $uri")
                     Log.d("DeepLinkDebug", "Query: ${uri?.query}")
                     Log.d("DeepLinkDebug", "access_token: ${uri?.getQueryParameter("access_token")}")
 
-                    if (tokenFromUri != null) {
-                        startDestination = Screen.ResetPassword.createRoute(tokenFromUri)
+                    if (tokenFromUri != null && host != null) {
+//                        startDestination = Screen.ResetPassword.createRoute(tokenFromUri)
+                        startDestination = when (host) {
+                            "reset" -> Screen.ResetPassword.createRoute(tokenFromUri)
+                            "confirm" -> Screen.Login.route
+                            else -> Screen.Login.route // fallback
+                        }
                         return@LaunchedEffect
                     } else {
                         val token = this@MainActivity.dataStore.data

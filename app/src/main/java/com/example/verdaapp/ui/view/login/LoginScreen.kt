@@ -85,6 +85,7 @@ fun LoginScreen(navController: NavController) {
     val googleLoginViewModel: GoogleLoginViewModel = viewModel()
     val syncSuccess by googleLoginViewModel.syncSuccess.collectAsState()
     val syncError by googleLoginViewModel.errorMessage.collectAsState()
+    val loginError by loginViewModel.loginError.collectAsState()
 
 
     val action = SupabaseClient.instance.composeAuth.rememberSignInWithGoogle(
@@ -135,9 +136,18 @@ fun LoginScreen(navController: NavController) {
         }
     )
 
+    LaunchedEffect(loginError) {
+        loginError?.let {
+            emailError = it
+            passwordError = it
+            loginViewModel.resetLoginError()
+        }
+    }
+
+
     LaunchedEffect(loginState) {
         loginState?.let { message ->
-            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+//            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
             if (message.contains("sukses", true) || message.contains("berhasil", true)) {
                 navController.navigate(Screen.Home.route) {
                     popUpTo(Screen.Login.route) { inclusive = true }
@@ -218,6 +228,7 @@ fun LoginScreen(navController: NavController) {
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
             isError = emailError != null,
+            singleLine = true,
             keyboardOptions = KeyboardOptions(
                 imeAction = ImeAction.Next,
                 autoCorrect = false
@@ -257,6 +268,7 @@ fun LoginScreen(navController: NavController) {
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
             isError = passwordError != null,
+            singleLine = true,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
                 imeAction = ImeAction.Next,

@@ -75,10 +75,23 @@ fun RegisterScreen(navController: NavController) {
     var confirmPasswordError by remember { mutableStateOf<String?>(null) }
     var nameError by remember { mutableStateOf<String?>(null) }
     val isLoading by viewModel.isLoading.collectAsState()
+    val registerError by viewModel.registerError.collectAsState()
+
+    LaunchedEffect(registerError) {
+        registerError?.let {
+            if (it.contains("This email is already registered", true) || it.contains("duplicate", true)) {
+                emailError = it
+                viewModel.resetRegisterError()
+            } else if (it.contains("Password must")) {
+                passwordError = it
+                viewModel.resetRegisterError()
+            }
+        }
+    }
 
     LaunchedEffect(registerState) {
         registerState?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+//            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
             if (it.contains("Registrasi Berhasil", ignoreCase = true)) {
                 navController.navigate(Screen.Login.route)
             } else {
@@ -145,6 +158,7 @@ fun RegisterScreen(navController: NavController) {
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
             isError = nameError != null,
+            singleLine = true,
             keyboardOptions = KeyboardOptions(
                 imeAction = ImeAction.Next,
                 autoCorrect = false
@@ -172,6 +186,7 @@ fun RegisterScreen(navController: NavController) {
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
             isError = emailError != null,
+            singleLine = true,
             keyboardOptions = KeyboardOptions(
                 imeAction = ImeAction.Next,
                 autoCorrect = false
@@ -210,6 +225,7 @@ fun RegisterScreen(navController: NavController) {
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
             isError = passwordError != null,
+            singleLine = true,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
                 imeAction = ImeAction.Next,
@@ -249,6 +265,7 @@ fun RegisterScreen(navController: NavController) {
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
             isError = confirmPasswordError != null,
+            singleLine = true,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
                 imeAction = ImeAction.Next,
