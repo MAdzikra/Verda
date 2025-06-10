@@ -6,7 +6,8 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object ChatbotApiConfig {
-    private const val BASE_URL = "https://rag-chatbot-backend-production-abd8.up.railway.app/"
+//    private const val BASE_URL = "https://rag-chatbot-backend-production-abd8.up.railway.app/"
+    private const val BASE_URL = "https://web-production-d914d.up.railway.app/"
 
     fun getApiService(): ChatbotApiService {
         val loggingInterceptor =

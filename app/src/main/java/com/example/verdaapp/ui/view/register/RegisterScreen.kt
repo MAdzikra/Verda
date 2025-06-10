@@ -321,7 +321,7 @@ fun RegisterScreen(navController: NavController) {
                 }
 
                 if (!hasError) {
-                    viewModel.register(name, email, password, "Guru")
+                    viewModel.register(name, email, password)
                 }
             },
             modifier = Modifier

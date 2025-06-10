@@ -19,12 +19,12 @@ class RegisterViewModel : ViewModel() {
     private val _registerError = MutableStateFlow<String?>(null)
     val registerError: StateFlow<String?> = _registerError.asStateFlow()
 
-    fun register(name: String, email: String, password: String, role: String) {
+    fun register(name: String, email: String, password: String) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
                 val response = ApiConfig.getApiService().register(
-                    RegisterRequest(username = name, email = email, password = password, role = role)
+                    RegisterRequest(username = name, email = email, password = password)
                 )
                 _registerState.value = "Registrasi Berhasil! Silakan cek email Anda."
                 _registerError.value = null
