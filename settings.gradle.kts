@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Verda"
+rootProject.name = "VerdaApp"
 include(":app")
  
