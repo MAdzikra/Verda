@@ -18,7 +18,7 @@
 | Bahasa     | Kotlin                    |
 | Framework  | Jetpack Compose           |
 | Backend    | Supabase (Edge Functions) |
-| Library    | Retrofit, Coil, Gson, dsb |
+| Library    | Retrofit                  |
 | Arsitektur | MVVM Architecture         |
 
 ## 🧑‍💻 Tim Pengembang
